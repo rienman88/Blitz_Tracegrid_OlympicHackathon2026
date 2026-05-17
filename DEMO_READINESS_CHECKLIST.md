@@ -92,6 +92,20 @@
 - [ ] Create a new public GitHub repository.
 - [ ] Push only sanitized project files to GitHub.
 
+## Winning Submission Gaps
+- [x] Add one explicit autonomous-agent failure reconstruction scenario, not only repository tracing.
+- [x] Added `Run AI Investigation` control that analyzes/selects/traces/runs agents as one autonomous workflow.
+- [x] Investigation verdict now reports Root Cause, Attack Surface, Primary Replay Path, Recommended Fix, and Confidence.
+- [x] Frontend production build passes after adding the AI Investigation workflow.
+- [x] Browser-verified local `Run AI Investigation` flow renders the verdict and completes against the demo-safe graph.
+- [ ] Add a concise in-app or README positioning statement: "Visual AI Runtime Intelligence" or "Causal Intelligence for Autonomous Systems."
+- [ ] Add a demo script section that maps each button to the judge story: graph reveal, trace slice, primary replay path, agents, security, voice.
+- [ ] Add a short architecture diagram to README or submission deck: ingestion, graph engine, agent reasoning, replay layer, deployment.
+- [ ] Verify Featherless with a real key and select one live agent role for the demo.
+- [ ] Verify Speechmatics live voice only after HTTPS is available; keep typed voice as the judged-safe option.
+- [ ] Add a submission-ready limitations note: AST-lite is hackathon-grade reconstruction, runtime instrumentation is roadmap.
+- [ ] Add a 60-90 second demo video flow centered on one killer story.
+
 ## Existing Vultr Instance Replacement
 - [ ] SSH into `144.202.50.150` and identify what is currently running.
 - [ ] Record current Docker containers, listening ports, compose folders, and service managers before stopping anything.

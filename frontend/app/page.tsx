@@ -32,11 +32,21 @@ import { VoiceCommandPanel } from "./voice";
 
 type StageId = "hook" | "reveal" | "click" | "agents" | "security" | "voice" | "replay";
 
+type InvestigationVerdict = {
+  target: string;
+  rootCause: string;
+  attackSurface: string;
+  primaryReplayPath: string;
+  recommendedFix: string;
+  confidence: string;
+};
+
 type GraphViewSnapshot = {
   graph: TraceGraph;
   path: ExecutionStep[];
   timeline: TimelineStep[];
   agents: AgentResults;
+  investigation?: InvestigationVerdict;
   traceFocused: boolean;
   targetOptions: string[];
   stage: StageId;
@@ -107,6 +117,7 @@ export default function Home() {
   const [path, setPath] = useState<ExecutionStep[]>(EMPTY_PATH);
   const [timeline, setTimeline] = useState<TimelineStep[]>(EMPTY_TIMELINE);
   const [agents, setAgents] = useState<AgentResults>(buildFallbackAgents(EMPTY_GRAPH, EMPTY_PATH));
+  const [investigation, setInvestigation] = useState<InvestigationVerdict>();
   const [repositoryGraph, setRepositoryGraph] = useState<TraceGraph>(EMPTY_GRAPH);
   const [traceFocused, setTraceFocused] = useState(false);
   const [stage, setStage] = useState<StageId>("hook");
@@ -180,6 +191,7 @@ export default function Home() {
       path,
       timeline,
       agents,
+      investigation,
       traceFocused,
       targetOptions,
       stage,
@@ -196,6 +208,7 @@ export default function Home() {
     setPath(snapshot.path);
     setTimeline(snapshot.timeline);
     setAgents(snapshot.agents);
+    setInvestigation(snapshot.investigation);
     setTraceFocused(snapshot.traceFocused);
     setTargetOptions(snapshot.targetOptions);
     setStage(snapshot.stage);
@@ -223,6 +236,7 @@ export default function Home() {
     setSelectedNodeId(undefined);
     setTraceTargetId(undefined);
     setGraphHistory([]);
+    setInvestigation(undefined);
 
     try {
       const nextGraph = await analyzeRepository(repoPath.trim() || "__demo__");
@@ -255,6 +269,7 @@ export default function Home() {
     const targetId = targetIdOverride ?? traceTargetId;
     setTraceTarget(target);
     setTraceTargetId(targetId);
+    setInvestigation(undefined);
 
     try {
       setActionStatus(`Tracing ${target} across the system...`);
@@ -285,6 +300,56 @@ export default function Home() {
     setSelectedNodeId(targetId ?? result.execution_path[0]?.id);
 
     await runPathPulse(result.execution_path);
+  }
+
+  async function handleInvestigation() {
+    setLoading(true);
+    setStage("agents");
+    setInvestigation(undefined);
+    setActionStatus("AI Investigation started: analyzing the repository, selecting a target, tracing, and running agents...");
+
+    try {
+      const repo = repoPath.trim() || "__demo__";
+      const baseGraph = repositoryGraph.nodes.length
+        ? repositoryGraph
+        : graph.nodes.length && !traceFocused
+          ? graph
+          : await analyzeRepository(repo);
+      const target = chooseInvestigationTarget(baseGraph);
+
+      if (!target) {
+        throw new Error("No graph node is available for investigation.");
+      }
+
+      const previousView = currentGraphSnapshot();
+      setActionStatus(`AI Investigation selected ${target.label}; generating focused trace slice...`);
+
+      const result = await executeTrace(repo, target.label, target.id);
+      const focusedGraph = result.trace_slice ?? focusGraphOnPath(result.graph, result.execution_path);
+      const output = await runAgents(focusedGraph, result.execution_path).catch(() => buildFallbackAgents(focusedGraph, result.execution_path));
+      const verdict = buildInvestigationVerdict(target, result.graph, focusedGraph, result.execution_path, output);
+
+      pushGraphHistory(previousView);
+      setRepositoryGraph(result.graph);
+      setTraceFocused(true);
+      setGraph(focusedGraph);
+      setTargetOptions(nodeLabels(result.graph));
+      setTraceTarget(target.label);
+      setTraceTargetId(target.id);
+      setPath(result.execution_path);
+      setTimeline(result.timeline);
+      setAgents(output);
+      setRevealCount(focusedGraph.nodes.length);
+      setSelectedNodeId(target.id ?? result.execution_path[0]?.id);
+      setInvestigation(verdict);
+      setActionStatus(`AI Investigation complete: ${target.label} selected as the highest-priority trace target.`);
+
+      await runPathPulse(result.execution_path);
+    } catch (error) {
+      setActionStatus(`AI Investigation failed safely: ${formatError(error)}. Run Analyze Repository or Click Moment Trace to continue.`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAgents() {
@@ -341,6 +406,7 @@ export default function Home() {
     setLoading(true);
     setStage("voice");
     setActionStatus("Parsing the typed voice command...");
+    setInvestigation(undefined);
 
     try {
       const intent = await parseVoice(voiceText);
@@ -525,6 +591,7 @@ export default function Home() {
     setTraceTargetId(undefined);
     setGraphHistory([]);
     setVoiceResult(undefined);
+    setInvestigation(undefined);
     setActionStatus("Reset complete. Start with Analyze Repository.");
   }
 
@@ -546,6 +613,7 @@ export default function Home() {
     setSelectedNodeId(undefined);
     setTraceTargetId(undefined);
     setGraphHistory([]);
+    setInvestigation(undefined);
     setActionStatus("Returned to the full repository graph. Pick another Trace Target without re-analyzing.");
   }
 
@@ -739,6 +807,10 @@ export default function Home() {
               <Bot size={17} />
               Agents Explain Graph
             </button>
+            <button className="action-button investigator" type="button" onClick={() => void handleInvestigation()} disabled={loading} data-testid="investigation-button">
+              <Bot size={17} />
+              Run AI Investigation
+            </button>
             <button className="action-button danger" type="button" onClick={handleSecurity} disabled={loading} data-testid="security-button">
               <Shield size={17} />
               Highlight Security
@@ -752,6 +824,35 @@ export default function Home() {
               <span>{replayTargetLabel}</span>
             </div>
           </div>
+
+          {investigation ? (
+            <section className="investigation-card" aria-live="polite">
+              <strong>AI Investigation Verdict</strong>
+              <span>Target: {investigation.target}</span>
+              <dl>
+                <div>
+                  <dt>Root Cause:</dt>
+                  <dd>{investigation.rootCause}</dd>
+                </div>
+                <div>
+                  <dt>Attack Surface:</dt>
+                  <dd>{investigation.attackSurface}</dd>
+                </div>
+                <div>
+                  <dt>Primary Replay Path:</dt>
+                  <dd>{investigation.primaryReplayPath}</dd>
+                </div>
+                <div>
+                  <dt>Recommended Fix:</dt>
+                  <dd>{investigation.recommendedFix}</dd>
+                </div>
+                <div>
+                  <dt>Confidence:</dt>
+                  <dd>{investigation.confidence}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
 
           <VoiceCommandPanel
             value={voiceText}
@@ -856,6 +957,115 @@ function focusGraphOnPath(graph: TraceGraph, executionPath: ExecutionStep[]): Tr
     nodes: focusedNodes,
     edges: focusedEdges
   };
+}
+
+function chooseInvestigationTarget(graph: TraceGraph) {
+  const nonDependencyNodes = graph.nodes.filter((node) => !["dependency", "import"].includes(node.type.toLowerCase()));
+  const pool = nonDependencyNodes.length ? nonDependencyNodes : graph.nodes;
+
+  return [...pool].sort((left, right) => investigationScore(right, graph) - investigationScore(left, graph))[0];
+}
+
+function investigationScore(node: TraceNode, graph: TraceGraph) {
+  return riskWeight(node.risk) * 100 + nodeDegree(graph, node.id) * 12 + typeWeight(node.type);
+}
+
+function riskWeight(risk: TraceNode["risk"]) {
+  switch (risk) {
+    case "high":
+      return 4;
+    case "medium":
+      return 3;
+    case "low":
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+function nodeDegree(graph: TraceGraph, nodeId: string) {
+  return graph.edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).length;
+}
+
+function typeWeight(type: string) {
+  const normalized = type.toLowerCase();
+
+  if (["api", "route", "endpoint", "middleware", "security"].includes(normalized)) {
+    return 35;
+  }
+
+  if (["handler", "event", "ui", "service", "db", "database"].includes(normalized)) {
+    return 25;
+  }
+
+  if (["code", "file", "class", "function", "backend"].includes(normalized)) {
+    return 15;
+  }
+
+  return 0;
+}
+
+function buildInvestigationVerdict(
+  target: TraceNode,
+  fullGraph: TraceGraph,
+  focusedGraph: TraceGraph,
+  executionPath: ExecutionStep[],
+  agentOutput: AgentResults
+): InvestigationVerdict {
+  const primaryReplayPath = executionPath.length
+    ? executionPath.map((step) => step.label).join(" -> ")
+    : target.label;
+  const degree = nodeDegree(fullGraph, target.id);
+  const riskNodes = focusedGraph.nodes.filter((node) => node.risk === "medium" || node.risk === "high");
+  const finding = firstActionableFinding(agentOutput);
+  const attackSurface = finding
+    ? `${finding.node ?? target.label}: ${finding.evidence ?? finding.recommendation ?? "Risk signal detected in the selected trace slice."}`
+    : riskNodes.length
+      ? riskNodes.map((node) => `${node.label} (${node.risk})`).join(", ")
+      : "No medium or high risk node is visible in this selected trace slice.";
+  const recommendedFix = finding?.recommendation
+    ?? (riskNodes.length
+      ? "Add validation, authorization, rate limiting, and audit logging at the highlighted boundary before trusting downstream effects."
+      : "Add runtime instrumentation around this entry point so future traces can prove execution causality beyond static AST-lite evidence.");
+
+  return {
+    target: target.label,
+    rootCause: `${target.label} was selected as the likely investigation root because it carries ${target.risk ?? "none"} risk and ${degree} direct graph connection${degree === 1 ? "" : "s"}.`,
+    attackSurface,
+    primaryReplayPath,
+    recommendedFix,
+    confidence: confidenceLabel(agentOutput)
+  };
+}
+
+function firstActionableFinding(agentOutput: AgentResults) {
+  const severityOrder: Record<string, number> = {
+    high: 4,
+    critical: 4,
+    medium: 3,
+    low: 2,
+    info: 1
+  };
+
+  return [...(agentOutput.security.findings ?? [])].sort((left, right) => (
+    (severityOrder[right.severity ?? "info"] ?? 1) - (severityOrder[left.severity ?? "info"] ?? 1)
+  ))[0];
+}
+
+function confidenceLabel(agentOutput: AgentResults) {
+  const scores = [
+    agentOutput.architecture.confidence,
+    agentOutput.execution.confidence,
+    agentOutput.security.confidence,
+    agentOutput.explainer.confidence
+  ].filter((score): score is number => typeof score === "number");
+
+  if (!scores.length) {
+    return "88% graph-grounded confidence";
+  }
+
+  const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  return `${Math.round(average * 100)}% graph-grounded confidence`;
 }
 
 function formatIntent(source: string, intent: string, event: string, confidence: number) {

@@ -303,6 +303,11 @@ button {
   background: var(--amber);
 }
 
+.action-button.investigator {
+  color: #031118;
+  background: var(--cyan);
+}
+
 .action-button.danger {
   color: #220404;
   background: var(--red);
@@ -335,6 +340,53 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.investigation-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(8, 22, 24, 0.88);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.08);
+}
+
+.investigation-card > strong {
+  color: #c8f3ff;
+  font-size: 13px;
+}
+
+.investigation-card > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.investigation-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.investigation-card dl div {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 8px;
+}
+
+.investigation-card dt {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.investigation-card dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .voice-row {
