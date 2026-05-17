@@ -1,6 +1,6 @@
 # TraceGrid AI
 
-TraceGrid AI is a hackathon demo system for visible causal execution understanding. It turns a repository or demo fixture into a graph that separates two ideas:
+Blitz TraceGrid is a hackathon demo system for visible causal execution understanding. It turns a repository or demo fixture into a graph that separates two ideas:
 
 - **Trace slice:** the visible connected context around a selected node.
 - **Primary replay path:** the ordered path used for animation and explanation.
