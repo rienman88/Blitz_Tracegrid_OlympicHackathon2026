@@ -116,6 +116,10 @@
 - [ ] Keep a rollback path until the hackathon demo is verified end to end.
 - [ ] User requested destructive clean replacement: reinstall OS on existing Vultr instance if no old data needs preservation.
 - [ ] Resolve post-reinstall SSH host-key mismatch only after confirming the current Vultr public IP in the dashboard.
+- [x] Deployment probe: `144.202.50.150` has HTTP open but SSH closed, so it cannot be updated through SSH from this machine.
+- [x] Deployment probe: `144.202.58.150` has SSH and HTTP open; changed host key was refreshed locally after the rebuild.
+- [ ] SSH authentication pending for `144.202.58.150`; add local public key `blitz-amd` to `/root/.ssh/authorized_keys` or provide an authenticated server shell.
+- [ ] After SSH auth works, pull GitHub commit `25b8caa` and rebuild with `docker compose -f docker-compose.prod.yml up -d --build`.
 
 ## Hackathon Provider Integrations
 - [x] Featherless uses real `/v1/chat/completions` inference when `FEATHERLESS_API_KEY` is configured.
