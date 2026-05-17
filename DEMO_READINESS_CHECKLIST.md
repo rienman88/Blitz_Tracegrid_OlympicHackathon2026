@@ -120,6 +120,7 @@
 - [x] Deployment probe: `144.202.58.150` has SSH and HTTP open; changed host key was refreshed locally after the rebuild.
 - [ ] SSH authentication pending for `144.202.58.150`; add local public key `blitz-amd` to `/root/.ssh/authorized_keys` or provide an authenticated server shell.
 - [ ] After SSH auth works, pull GitHub commit `25b8caa` and rebuild with `docker compose -f docker-compose.prod.yml up -d --build`.
+- [x] Public `http://144.202.58.150/health` responds with TraceGrid `ok`, but SSH still rejects the offered `blitz-amd` key, so latest commit `417f2df` has not been deployed yet.
 
 ## Hackathon Provider Integrations
 - [x] Featherless uses real `/v1/chat/completions` inference when `FEATHERLESS_API_KEY` is configured.
