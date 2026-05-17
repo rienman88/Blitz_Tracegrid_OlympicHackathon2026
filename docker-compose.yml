@@ -1,0 +1,82 @@
+services:
+  backend:
+    image: ${IMAGE_NAMESPACE:-tracegrid}/tracegrid-backend:${IMAGE_TAG:-local}
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      FEATHERLESS_API_KEY: ${FEATHERLESS_API_KEY:-}
+      FEATHERLESS_MODEL: ${FEATHERLESS_MODEL:-Qwen/Qwen3-Coder-30B-A3B-Instruct}
+      FEATHERLESS_BASE_URL: ${FEATHERLESS_BASE_URL:-https://api.featherless.ai/v1}
+      FEATHERLESS_TIMEOUT_SECONDS: ${FEATHERLESS_TIMEOUT_SECONDS:-2.8}
+      TRACEGRID_LIVE_AGENT: ${TRACEGRID_LIVE_AGENT:-none}
+      ALLOW_GITHUB_INGESTION: ${ALLOW_GITHUB_INGESTION:-true}
+      GITHUB_CLONE_TIMEOUT_SECONDS: ${GITHUB_CLONE_TIMEOUT_SECONDS:-25}
+      SPEECHMATICS_API_KEY: ${SPEECHMATICS_API_KEY:-}
+      SPEECHMATICS_MP_URL: ${SPEECHMATICS_MP_URL:-https://mp.speechmatics.com}
+      SPEECHMATICS_JWT_TTL_SECONDS: ${SPEECHMATICS_JWT_TTL_SECONDS:-60}
+      SPEECHMATICS_RT_URL: ${SPEECHMATICS_RT_URL:-wss://eu2.rt.speechmatics.com/v2}
+      SPEECHMATICS_AUTH_QUERY: ${SPEECHMATICS_AUTH_QUERY:-jwt}
+      SPEECHMATICS_LANGUAGE: ${SPEECHMATICS_LANGUAGE:-en}
+      SPEECHMATICS_OPERATING_POINT: ${SPEECHMATICS_OPERATING_POINT:-enhanced}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    depends_on:
+      neo4j:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  frontend:
+    image: ${IMAGE_NAMESPACE:-tracegrid}/tracegrid-frontend:${IMAGE_TAG:-local}
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+        NEXT_PUBLIC_WS_BASE_URL: ${NEXT_PUBLIC_WS_BASE_URL:-}
+        NEXT_PUBLIC_API_TIMEOUT_MS: ${NEXT_PUBLIC_API_TIMEOUT_MS:-6500}
+        NEXT_PUBLIC_REPOSITORY_API_TIMEOUT_MS: ${NEXT_PUBLIC_REPOSITORY_API_TIMEOUT_MS:-45000}
+        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8000}
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8000}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/password}
+    volumes:
+      - neo4j_data:/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  neo4j_data:
+  redis_data:

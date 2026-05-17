@@ -1,0 +1,15 @@
+backend/**/*.log
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/node_modules/
+frontend/.next/
+frontend/node_modules/
+frontend/*.log
+*.log
+tracegrid-*.tar.gz
+trace-slice-verified.png
+.env
+.env.prod
+.env.local
+!.env.example
+!.env.prod.example
