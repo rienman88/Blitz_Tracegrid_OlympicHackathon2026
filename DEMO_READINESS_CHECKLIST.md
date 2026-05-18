@@ -330,3 +330,18 @@
 - [x] Updated live voice feedback so the UI distinguishes `heard`, `accepted`, and executed commands.
 - [x] Allowed short spoken `Analyze` to route to Analyze Repository instead of falling into trace parsing.
 - [x] Re-run frontend production build after Speechmatics execution trigger patch.
+
+## Hackathon PDF Pitch
+- [x] Reviewed the existing `Blitz_TraceGrid_AI_Agent_Olympics_Pitch.pptx` slide story.
+- [x] Created a more informative 14-page PDF pitch with current product state, deterministic Click Moment fix, AI Investigation, security value, Speechmatics/HTTPS caveat, Vultr deployment shape, technical honesty, and roadmap.
+- [x] Verified the generated PDF is non-empty and contains 14 pages.
+
+## README Product Alignment
+- [x] Scanned current frontend controls, backend analyzer, execution engine, agent fallbacks, Speechmatics proxy, Featherless integration, Docker Compose files, and deployment runbook before rewriting the README.
+- [x] Reframed the README around the actual product purpose: graph-grounded static causal reconstruction with focused trace slices, primary replay paths, agent reasoning, AI Investigation, and voice controls.
+- [x] Added a clear honesty section explaining that TraceGrid is not yet production runtime tracing and does not prove vulnerabilities or safety.
+- [x] Documented the real user flow: paste public GitHub URL or local path, Analyze Repository, select Trace Target, run replay, agents, security highlighting, or AI Investigation.
+- [x] Explained Full Repository Graph, Trace Slice, Primary Replay Path, Risk Signal, and the LoginButton demo fixture in plain language.
+- [x] Documented provider behavior accurately: Featherless and Speechmatics are optional; typed command mode and local graph-grounded fallbacks remain available without keys.
+- [x] Documented that real `.env` and `.env.prod` files stay off GitHub and provider keys must be configured on the runtime host.
+- [x] Added current limitations and roadmap so judges and future users understand what exists now versus what comes next.
