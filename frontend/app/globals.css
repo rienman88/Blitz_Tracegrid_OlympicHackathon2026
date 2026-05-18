@@ -458,10 +458,61 @@ button {
   color: #c8f3ff;
 }
 
+.voice-control {
+  display: grid;
+  gap: 8px;
+}
+
+.voice-control.compact {
+  margin-top: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(8, 22, 24, 0.48);
+}
+
+.voice-control-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.voice-control-primary h3 {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.voice-control.compact .voice-mode-row {
+  flex: 0 0 auto;
+  gap: 5px;
+  margin: 0;
+}
+
+.voice-control.compact .provider-pill {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
 .voice-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+  min-width: 0;
+}
+
+.voice-control.compact .voice-row {
+  flex: 1 1 260px;
+  gap: 6px;
+}
+
+.voice-control.compact .voice-live-button,
+.voice-control.compact .voice-row .action-button {
+  min-height: 34px;
+  padding: 7px 9px;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .voice-command-grid {
@@ -489,6 +540,31 @@ button {
   opacity: 0.62;
 }
 
+.voice-control.compact .voice-control-secondary {
+  align-items: stretch;
+}
+
+.voice-control.compact .voice-command-grid {
+  flex: 0 0 252px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.voice-control.compact .voice-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 30px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 5px;
+  font-size: 10px;
+}
+
 .voice-row input {
   width: 100%;
   border: 1px solid var(--line);
@@ -496,6 +572,11 @@ button {
   padding: 11px 12px;
   color: var(--text);
   background: #0a0f0c;
+}
+
+.voice-control.compact .voice-row input {
+  padding: 8px 9px;
+  font-size: 12px;
 }
 
 .repo-input {
@@ -518,6 +599,17 @@ button {
   font-size: 12px;
 }
 
+.voice-control.compact .voice-result {
+  flex: 1 1 120px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-style: solid;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
 .voice-result strong,
 .voice-result span {
   display: block;
@@ -526,6 +618,19 @@ button {
 .voice-result strong {
   color: var(--text);
   margin-bottom: 5px;
+}
+
+.voice-control.compact .voice-result strong,
+.voice-control.compact .voice-result span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-control.compact .voice-result strong {
+  margin: 0 8px 0 0;
+  flex: 0 0 auto;
 }
 
 .voice-mode-row {

@@ -963,21 +963,6 @@ export default function Home() {
             </section>
           ) : null}
 
-          <VoiceCommandPanel
-            value={voiceText}
-            result={voiceResult}
-            voiceStatus={voiceStatus}
-            isListening={isListening}
-            liveTranscript={liveTranscript}
-            disabled={loading}
-            onChange={setVoiceText}
-            onSubmit={() => void handleVoice()}
-            examples={VOICE_COMMAND_EXAMPLES}
-            onRunCommand={handleQuickVoiceCommand}
-            onStartLive={() => void handleLiveVoice()}
-            onStopLive={handleStopLiveVoice}
-          />
-
           <ReplayControls isPlaying={isReplaying} onReplay={() => void handleReplay()} onReset={handleReset} />
         </aside>
 
@@ -1001,6 +986,21 @@ export default function Home() {
               <span><strong>Replay</strong> {replayModeLabel}</span>
               <span><strong>Analyzer</strong> {analyzerMode}</span>
             </div>
+            <VoiceCommandPanel
+              variant="compact"
+              value={voiceText}
+              result={voiceResult}
+              voiceStatus={voiceStatus}
+              isListening={isListening}
+              liveTranscript={liveTranscript}
+              disabled={loading}
+              onChange={setVoiceText}
+              onSubmit={() => void handleVoice()}
+              examples={VOICE_COMMAND_EXAMPLES}
+              onRunCommand={handleQuickVoiceCommand}
+              onStartLive={() => void handleLiveVoice()}
+              onStopLive={handleStopLiveVoice}
+            />
           </div>
           <Graph
             data={graph}

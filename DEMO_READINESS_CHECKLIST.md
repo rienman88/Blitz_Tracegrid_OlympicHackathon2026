@@ -307,3 +307,9 @@
 - [x] Browser verify Analyze Repository -> Click Moment Trace renders the full 8-node LoginButton path when Trace Target is empty.
 - [x] Browser verify selecting a Trace Target suggestion automatically runs the focused trace without pressing Click Moment Trace.
 - [x] Browser verify typed voice quick commands trigger Analyze, Security, and Replay controls.
+
+## Voice Control Header Relocation
+- [x] Moved Voice Control out of the left Demo Control panel and into the middle graph header so voice commands sit beside the active execution context.
+- [x] Added a compact two-line Voice Control layout: primary line for provider status, live Speechmatics, command input, and run action; secondary line for quick commands and command result.
+- [x] Re-run frontend production build after the Voice Control header relocation.
+- [x] Browser verify the compact Voice Control header fits without making the graph header bulky.
