@@ -40,13 +40,15 @@ type InvestigationVerdict = {
   recommendedFix: string;
   confidence: string;
   score: InvestigationScoreBreakdown;
+  plainEnglish: string;
 };
 
 type InvestigationScoreBreakdown = {
   total: number;
-  risk: number;
-  connections: number;
-  layer: number;
+  riskSignal: number;
+  connectivity: number;
+  layerPriority: number;
+  baseline: number;
   directConnections: number;
 };
 
@@ -877,9 +879,13 @@ export default function Home() {
                 <div>
                   <dt>Selection Score:</dt>
                   <dd>
-                    {investigation.score.total} total = {investigation.score.risk} risk + {investigation.score.connections} connection + {investigation.score.layer} layer points
+                    {investigation.score.total} total = {investigation.score.riskSignal} risk signal + {investigation.score.connectivity} connectivity + {investigation.score.layerPriority} layer priority + {investigation.score.baseline} baseline
                     ({investigation.score.directConnections} direct graph connections).
                   </dd>
+                </div>
+                <div>
+                  <dt>Plain English:</dt>
+                  <dd>{investigation.plainEnglish}</dd>
                 </div>
               </dl>
             </section>
@@ -1005,29 +1011,31 @@ function chooseInvestigationTarget(graph: TraceGraph) {
 
 function investigationScoreBreakdown(node: TraceNode, graph: TraceGraph): InvestigationScoreBreakdown {
   const directConnections = nodeDegree(graph, node.id);
-  const risk = riskWeight(node.risk) * 100;
-  const connections = directConnections * 12;
-  const layer = typeWeight(node.type);
+  const baseline = 100;
+  const riskSignal = riskSignalPoints(node.risk);
+  const connectivity = directConnections * 12;
+  const layerPriority = typeWeight(node.type);
 
   return {
-    total: risk + connections + layer,
-    risk,
-    connections,
-    layer,
+    total: baseline + riskSignal + connectivity + layerPriority,
+    riskSignal,
+    connectivity,
+    layerPriority,
+    baseline,
     directConnections
   };
 }
 
-function riskWeight(risk: TraceNode["risk"]) {
+function riskSignalPoints(risk: TraceNode["risk"]) {
   switch (risk) {
     case "high":
-      return 4;
+      return 300;
     case "medium":
-      return 3;
+      return 200;
     case "low":
-      return 2;
+      return 100;
     default:
-      return 1;
+      return 0;
   }
 }
 
@@ -1083,8 +1091,17 @@ function buildInvestigationVerdict(
     primaryReplayPath,
     recommendedFix,
     confidence: confidenceLabel(agentOutput),
-    score
+    score,
+    plainEnglish: plainEnglishInvestigation(target)
   };
+}
+
+function plainEnglishInvestigation(target: TraceNode) {
+  if ((target.risk ?? "none") === "none") {
+    return "This file looks important, not necessarily dangerous. TraceGrid did not find an obvious risk here, but runtime testing is still needed before calling it safe.";
+  }
+
+  return `${target.label} looks important and has a ${target.risk} risk signal. TraceGrid is not saying this is definitely vulnerable; it is saying this is a high-priority place for a human to inspect next.`;
 }
 
 function firstActionableFinding(agentOutput: AgentResults) {

@@ -106,6 +106,7 @@
 - [x] Improved node and security-agent risk explanations with boundary-specific reasoning.
 - [x] Frontend production build and backend security-agent syntax check pass after the static-causality credibility pass.
 - [x] Browser-verified hardening pass: build badge, static mode, investigation score, graph mode labels, and risk reasoning render locally.
+- [x] Clarified AI Investigation score language: `none` risk now displays as `0 risk signal + 100 baseline`, with a plain-English explanation that important does not mean dangerous.
 - [ ] Add a concise in-app or README positioning statement: "Visual AI Runtime Intelligence" or "Causal Intelligence for Autonomous Systems."
 - [ ] Add a demo script section that maps each button to the judge story: graph reveal, trace slice, primary replay path, agents, security, voice.
 - [ ] Add a short architecture diagram to README or submission deck: ingestion, graph engine, agent reasoning, replay layer, deployment.
