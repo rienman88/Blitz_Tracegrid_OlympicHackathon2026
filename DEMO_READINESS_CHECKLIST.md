@@ -323,3 +323,10 @@
 - [x] Re-run frontend production build after the demo regression and HTTPS readiness patch.
 - [x] Browser verify demo Analyze Repository -> Click Moment Trace renders 8 nodes / 7 edges.
 - [x] Verify Docker Compose config renders the HTTPS override without touching `.env.prod`.
+
+## Speechmatics Command Execution
+- [x] Identified live voice regression as a frontend command-trigger issue after successful Speechmatics transcript recognition.
+- [x] Buffered partial Speechmatics transcripts and execute the merged command after a short speech pause or final transcript event.
+- [x] Updated live voice feedback so the UI distinguishes `heard`, `accepted`, and executed commands.
+- [x] Allowed short spoken `Analyze` to route to Analyze Repository instead of falling into trace parsing.
+- [x] Re-run frontend production build after Speechmatics execution trigger patch.

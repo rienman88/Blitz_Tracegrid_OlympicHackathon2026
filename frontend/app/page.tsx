@@ -175,6 +175,8 @@ export default function Home() {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const liveTriggeredRef = useRef(false);
+  const liveTranscriptRef = useRef("");
+  const liveCommandTimerRef = useRef<number>();
 
   useEffect(() => {
     void getVoiceStatus().then(setVoiceStatus);
@@ -533,6 +535,7 @@ export default function Home() {
     setStage("voice");
     setVoiceResult(undefined);
     setLiveTranscript("");
+    liveTranscriptRef.current = "";
     liveTriggeredRef.current = false;
 
     if (!voiceStatus?.speechmatics_configured) {
@@ -609,8 +612,9 @@ export default function Home() {
 
   function handleStopLiveVoice() {
     stopLiveVoice();
-    if (liveTranscript.trim()) {
-      setVoiceText(liveTranscript.trim());
+    const transcript = liveTranscriptRef.current.trim() || liveTranscript.trim();
+    if (transcript) {
+      setVoiceText(transcript);
     }
   }
 
@@ -634,18 +638,39 @@ export default function Home() {
       }
 
       if (transcript) {
-        setLiveTranscript((current) => mergeTranscript(current, transcript, isFinalTranscript));
-        setVoiceText(transcript);
-
-        if (shouldTriggerVoiceCommand(transcript) && !liveTriggeredRef.current) {
-          liveTriggeredRef.current = true;
-          setVoiceResult(`Speechmatics transcript accepted: ${transcript}`);
-          void runVoiceCommandFromTranscript(transcript);
-        }
+        const mergedTranscript = mergeTranscript(liveTranscriptRef.current, transcript, isFinalTranscript);
+        liveTranscriptRef.current = mergedTranscript;
+        setLiveTranscript(mergedTranscript);
+        setVoiceText(mergedTranscript);
+        scheduleSpeechmaticsCommand(mergedTranscript, isFinalTranscript);
       }
     } catch {
       return;
     }
+  }
+
+  function scheduleSpeechmaticsCommand(transcript: string, isFinalTranscript: boolean) {
+    const command = transcript.trim();
+    if (!command || liveTriggeredRef.current || !shouldTriggerVoiceCommand(command)) {
+      return;
+    }
+
+    if (liveCommandTimerRef.current) {
+      window.clearTimeout(liveCommandTimerRef.current);
+    }
+
+    const delayMs = isFinalTranscript ? 0 : 900;
+    setVoiceResult(`Speechmatics heard: ${command}\nExecuting after speech pause...`);
+    setActionStatus("Speechmatics recognized a command. Waiting for the phrase to finish before executing.");
+    liveCommandTimerRef.current = window.setTimeout(() => {
+      if (liveTriggeredRef.current) {
+        return;
+      }
+
+      liveTriggeredRef.current = true;
+      setVoiceResult(`Speechmatics command accepted: ${liveTranscriptRef.current || command}`);
+      void runVoiceCommandFromTranscript(liveTranscriptRef.current || command);
+    }, delayMs);
   }
 
   async function runVoiceCommandFromTranscript(transcript: string) {
@@ -783,6 +808,11 @@ export default function Home() {
   }
 
   function cleanupLiveVoice() {
+    if (liveCommandTimerRef.current) {
+      window.clearTimeout(liveCommandTimerRef.current);
+      liveCommandTimerRef.current = undefined;
+    }
+
     processorRef.current?.disconnect();
     sourceRef.current?.disconnect();
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -1327,7 +1357,7 @@ function classifyVoiceCommand(command: string) {
     return "replay";
   }
 
-  if (/analy[sz]e\s+(repository|repo|codebase|github)|graph reveal|load repository|scan repository/.test(normalized)) {
+  if (/\banaly[sz]e\b|graph reveal|load repository|scan repository/.test(normalized)) {
     return "analyze";
   }
 
@@ -1377,15 +1407,24 @@ function transcriptFromSpeechmatics(payload: { metadata?: { transcript?: string 
 }
 
 function mergeTranscript(current: string, transcript: string, final: boolean) {
+  const normalizedTranscript = transcript.trim();
   if (!current || !final) {
+    if (current && normalizedTranscript && normalizeTranscript(current).endsWith(normalizeTranscript(normalizedTranscript))) {
+      return current;
+    }
+
     return transcript;
   }
 
-  if (current.endsWith(transcript)) {
+  if (normalizeTranscript(current).endsWith(normalizeTranscript(normalizedTranscript))) {
     return current;
   }
 
-  return `${current} ${transcript}`.replace(/\s+/g, " ").trim();
+  return `${current} ${normalizedTranscript}`.replace(/\s+/g, " ").trim();
+}
+
+function normalizeTranscript(value: string) {
+  return value.toLowerCase().replace(/[^\w\s/.-]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function shouldTriggerVoiceCommand(transcript: string) {
