@@ -107,6 +107,10 @@
 - [x] Clarified AI Investigation score language: `none` risk now displays as `0 risk signal + 100 baseline`, with a plain-English explanation that important does not mean dangerous.
 - [x] Added `Brief explanation` blocks for Execution Timeline, Agent Reasoning, Security Agent, Execution Agent, Explainer Agent, and Risk Reasoning.
 - [x] README documents the layman's explanation layer and what each explanation helps judges understand.
+- [x] Drafted submission answers for title, short description, long description, participation mode, categories, and technologies.
+- [x] Drafted a video presentation script with exact demo actions, timing, fallback lines, and presentation talk track.
+- [x] Created a 10-slide AI Agent Olympics hackathon pitch deck for Blitz TraceGrid.
+- [x] Verified the pitch deck exports as a non-empty PPTX with 10 slides and no empty media files.
 - [ ] Add a concise in-app or README positioning statement: "Visual AI Runtime Intelligence" or "Causal Intelligence for Autonomous Systems."
 - [ ] Add a demo script section that maps each button to the judge story: graph reveal, trace slice, primary replay path, agents, security, voice.
 - [ ] Add a short architecture diagram to README or submission deck: ingestion, graph engine, agent reasoning, replay layer, deployment.
@@ -291,3 +295,15 @@
 - [x] Verified invalid GitHub input returns an explicit API error instead of the login demo graph.
 - [x] Verified local source analysis on `https://github.com/pallets/itsdangerous`.
 - [x] Verified deployable `/analyze` returns `github-ast-lite` with 15 files, 286 nodes, and 271 edges for `github.com/pallets/itsdangerous`.
+
+## Trace Target, Voice Control, And Security Clarity
+- [x] Trace Target suggestions now act as an execution control: selecting an exact listed node automatically runs its focused trace.
+- [x] Analyze Repository now clears stale Trace Target text so Click Moment Trace returns to the full LoginButton demo path when no target is selected.
+- [x] Typed voice and Speechmatics commands now dispatch to app controls: Analyze Repository, Trace Target, Agents Explain Graph, Highlight Security Risks, Run AI Investigation, and Replay Execution Flow.
+- [x] Added quick voice command buttons for the judged-safe typed control path.
+- [x] Renamed `Replay Execution` to `Replay Execution Flow` for clearer demo language.
+- [x] Renamed and clarified `Highlight Security Risks`; it now highlights any visible low, medium, or high static risk signal and explains that these are review targets, not confirmed vulnerabilities.
+- [x] Re-run frontend production build after the Trace Target, voice control, replay label, and security clarity patch.
+- [x] Browser verify Analyze Repository -> Click Moment Trace renders the full 8-node LoginButton path when Trace Target is empty.
+- [x] Browser verify selecting a Trace Target suggestion automatically runs the focused trace without pressing Click Moment Trace.
+- [x] Browser verify typed voice quick commands trigger Analyze, Security, and Replay controls.

@@ -13,7 +13,7 @@ export function ReplayControls({ isPlaying, onReplay, onReset }: ReplayControlsP
     <div className="replay-controls">
       <button className="action-button secondary" type="button" onClick={onReplay} data-testid="replay-button">
         {isPlaying ? <Pause size={17} /> : <Play size={17} />}
-        Replay
+        Replay Flow
       </button>
       <button className="action-button secondary" type="button" onClick={onReset}>
         <RefreshCw size={17} />

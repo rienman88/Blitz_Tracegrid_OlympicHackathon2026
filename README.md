@@ -11,12 +11,12 @@ The project is built for the Milan AI Week hackathon demo flow: graph reveal, cl
 
 - Repository analysis with AST-lite extraction for Python and TS/JS/TSX.
 - Public GitHub URL ingestion for real-world demo flow.
-- Focused trace targets by node label or clicked graph node.
+- Focused trace targets by node label, selected suggestion, or clicked graph node.
 - Replay target labeling so the animated path is explicit.
 - Graph-grounded agent cards for architecture, execution, security, and explanation.
 - Brief explanations beside the timeline, agent cards, and risk reasoning so non-technical judges can understand what each panel means.
 - Featherless inference integration when configured.
-- Speechmatics typed command mode and optional realtime microphone mode.
+- Speechmatics typed command mode and optional realtime microphone mode for analyze, trace, agents, security, and replay controls.
 - Docker Compose local and production-style deployment.
 
 ## Brief Explanations
@@ -29,6 +29,15 @@ TraceGrid now includes short layman's explanations in the main demo panels:
 - **Execution Agent:** explains that replay follows a breadcrumb trail through the graph, not live runtime tracing yet.
 - **Explainer Agent:** explains the technical graph as a story for non-engineers.
 - **Risk Reasoning:** explains that important does not automatically mean dangerous; static analysis can miss runtime-only behavior.
+
+## Demo Controls
+
+- **Analyze Repository:** loads the full system graph and clears stale Trace Target selections.
+- **Trace Target:** selecting a listed node immediately runs its focused trace slice; typing a custom target still works with Click Moment Trace.
+- **Click Moment Trace:** runs the selected target, or the full LoginButton demo path when the target is empty.
+- **Highlight Security Risks:** highlights visible low, medium, and high static risk signals. These are review targets, not confirmed vulnerabilities.
+- **Replay Execution Flow:** replays the active primary path in order.
+- **Voice Control:** typed or Speechmatics commands can trigger analyze, trace, agents, security highlighting, AI investigation, or replay.
 
 ## Local Run
 

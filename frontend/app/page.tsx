@@ -89,6 +89,12 @@ const BUILD_INFO = {
   commit: process.env.NEXT_PUBLIC_GIT_SHA?.trim() || "local",
   builtAt: process.env.NEXT_PUBLIC_BUILD_TIME?.trim() || "dev build"
 };
+const VOICE_COMMAND_EXAMPLES = [
+  "Analyze repository",
+  "Trace what happens when a user logs in",
+  "Highlight security risks",
+  "Replay execution flow"
+];
 
 const STAGE_GUIDE: Record<StageId, { title: string; purpose: string; result: string }> = {
   hook: {
@@ -112,14 +118,14 @@ const STAGE_GUIDE: Record<StageId, { title: string; purpose: string; result: str
     result: "Agent cards update without replacing the graph."
   },
   security: {
-    title: "Security view",
-    purpose: "Highlights the attack surface directly on the active trace slice.",
-    result: "Medium and high risk nodes glow."
+    title: "Security risk signals",
+    purpose: "Highlights visible nodes that carry a low, medium, or high static risk signal.",
+    result: "Glowing nodes are review targets, not confirmed vulnerabilities."
   },
   voice: {
     title: "Voice command",
-    purpose: "Parses natural language into the same trace action.",
-    result: "Typed or Speechmatics input can name a target to trace."
+    purpose: "Parses natural language into app controls: analyze, trace, agents, security, and replay.",
+    result: "Typed or Speechmatics input can execute the same demo actions."
   },
   replay: {
     title: "Cinematic replay",
@@ -171,7 +177,7 @@ export default function Home() {
   const activeNodeIds = useMemo(() => {
     if (stage === "security") {
       return graph.nodes
-        .filter((node) => node.risk === "medium" || node.risk === "high")
+        .filter(hasSecuritySignal)
         .map((node) => node.id);
     }
 
@@ -193,7 +199,7 @@ export default function Home() {
     return ids;
   }, [activeIndex, activeNodeIds, graph.edges, path, stage]);
 
-  const riskCount = graph.nodes.filter((node) => node.risk === "medium" || node.risk === "high").length;
+  const riskCount = graph.nodes.filter(hasSecuritySignal).length;
   const currentGuide = STAGE_GUIDE[stage];
   const previousGraphView = graphHistory[graphHistory.length - 1];
   const canReturnToPreviousTrace = Boolean(previousGraphView?.traceFocused);
@@ -253,6 +259,7 @@ export default function Home() {
     setActiveIndex(-1);
     setRevealCount(0);
     setSelectedNodeId(undefined);
+    setTraceTarget("");
     setTraceTargetId(undefined);
     setGraphHistory([]);
     setInvestigation(undefined);
@@ -413,30 +420,85 @@ export default function Home() {
 
     setAgents(buildFallbackAgents(graphForSecurity, pathForSecurity));
 
+    const riskNodes = graphForSecurity.nodes.filter(hasSecuritySignal);
+    const firstRiskNode = riskNodes.find((node) => node.risk === "high" || node.risk === "medium") ?? riskNodes[0];
     setStage("security");
-    setActionStatus("Security view active: medium and high risk nodes are highlighted on the active trace slice.");
+    setActionStatus(
+      riskNodes.length
+        ? `Security risk highlight active: ${riskNodes.length} static risk signal${riskNodes.length === 1 ? "" : "s"} highlighted (${riskSummary(riskNodes)}). Review targets: ${riskNodes.slice(0, 4).map((node) => node.label).join(", ")}${riskNodes.length > 4 ? ", ..." : ""}.`
+        : "Security risk highlight active: no low, medium, or high static risk signals are visible in this graph. That does not prove runtime safety."
+    );
     setRevealCount(graphForSecurity.nodes.length);
-    const firstRiskNode = graphForSecurity.nodes.find((node) => node.risk === "high" || node.risk === "medium");
     setActiveIndex(firstRiskNode ? Math.max(0, pathForSecurity.findIndex((step) => step.id === firstRiskNode.id)) : -1);
     setSelectedNodeId(firstRiskNode?.id);
   }
 
   async function handleVoice() {
+    await executeVoiceCommand(voiceText, "typed");
+  }
+
+  async function executeVoiceCommand(commandText: string, source: "typed" | "speechmatics") {
+    const command = commandText.trim();
+    const sourceLabel = source === "speechmatics" ? "Speechmatics" : "Typed command";
+
+    if (!command) {
+      setVoiceResult(`${sourceLabel} needs a command. Try: Analyze repository, Trace LoginButton, Highlight security risks, or Replay execution flow.`);
+      setActionStatus("Voice command was empty. Use one of the suggested commands.");
+      return;
+    }
+
     setLoading(true);
     setStage("voice");
-    setActionStatus("Parsing the typed voice command...");
+    setVoiceText(command);
+    setActionStatus(`${sourceLabel} accepted: routing "${command}" to the correct TraceGrid control...`);
     setInvestigation(undefined);
 
     try {
-      const intent = await parseVoice(voiceText);
+      const appAction = classifyVoiceCommand(command);
+
+      if (appAction === "analyze") {
+        setVoiceResult(`${sourceLabel} | Action: Analyze Repository | Repository: ${repoPath.trim() || "__demo__"}`);
+        await handleAnalyze();
+        return;
+      }
+
+      if (appAction === "security") {
+        setVoiceResult(`${sourceLabel} | Action: Highlight Security Risks`);
+        handleSecurity();
+        return;
+      }
+
+      if (appAction === "agents") {
+        setVoiceResult(`${sourceLabel} | Action: Agents Explain Graph`);
+        await handleAgents();
+        return;
+      }
+
+      if (appAction === "investigation") {
+        setVoiceResult(`${sourceLabel} | Action: Run AI Investigation`);
+        await handleInvestigation();
+        return;
+      }
+
+      if (appAction === "replay") {
+        setVoiceResult(`${sourceLabel} | Action: Replay Execution Flow`);
+        await handleReplay();
+        return;
+      }
+
+      const intent = await parseVoice(command);
+      const lookupGraph = repositoryGraph.nodes.length ? repositoryGraph : graph;
+      const targetNode = findTraceTargetNode(lookupGraph, intent.event);
+      const targetLabel = targetNode?.label ?? intent.event;
       const intentSummary = formatIntent(intent.source ?? "typed_command", intent.intent, intent.event, intent.confidence);
-      setTraceTarget(intent.event);
-      setVoiceResult(intentSummary);
-      await loadTrace("voice", intent.event);
-      setVoiceResult(intentSummary);
-      setActionStatus(`Voice command complete: natural language triggered the ${intent.event} trace.`);
+      setTraceTarget(targetLabel);
+      setTraceTargetId(targetNode?.id);
+      setVoiceResult(`${intentSummary}\nAction: Trace Target -> ${targetLabel}`);
+      await loadTrace("voice", targetLabel, targetNode?.id);
+      setVoiceResult(`${intentSummary}\nExecuted trace target: ${targetLabel}`);
+      setActionStatus(`${sourceLabel} complete: ${targetLabel} trace slice is visible.`);
     } catch (error) {
-      setVoiceResult(`Typed command failed safely: ${formatError(error)}.`);
+      setVoiceResult(`${sourceLabel} failed safely: ${formatError(error)}.`);
       setActionStatus("Voice command failed safely. Use Click Moment or Analyze Repository to continue.");
     } finally {
       setLoading(false);
@@ -489,8 +551,8 @@ export default function Home() {
       socket.binaryType = "arraybuffer";
       socket.onopen = () => {
         setIsListening(true);
-        setVoiceResult("Speechmatics realtime session connected. Say: Trace what happens when a user logs in.");
-        setActionStatus("Live Speechmatics is listening for the login trace command.");
+        setVoiceResult("Speechmatics realtime session connected. Say: Analyze repository, trace LoginButton, highlight security risks, or replay execution flow.");
+        setActionStatus("Live Speechmatics is listening for a TraceGrid control command.");
         source.connect(processor);
         processor.connect(audioContext.destination);
       };
@@ -551,10 +613,10 @@ export default function Home() {
         setLiveTranscript((current) => mergeTranscript(current, transcript, isFinalTranscript));
         setVoiceText(transcript);
 
-        if (shouldTriggerTrace(transcript) && !liveTriggeredRef.current) {
+        if (shouldTriggerVoiceCommand(transcript) && !liveTriggeredRef.current) {
           liveTriggeredRef.current = true;
           setVoiceResult(`Speechmatics transcript accepted: ${transcript}`);
-          void runVoiceIntentFromTranscript(transcript);
+          void runVoiceCommandFromTranscript(transcript);
         }
       }
     } catch {
@@ -562,16 +624,12 @@ export default function Home() {
     }
   }
 
-  async function runVoiceIntentFromTranscript(transcript: string) {
-    const intent = await parseVoice(transcript);
-    const intentSummary = formatIntent("speechmatics", intent.intent, intent.event, intent.confidence);
-    setTraceTarget(intent.event);
-    setVoiceResult(intentSummary);
-    setActionStatus(`Speechmatics transcript accepted. Starting ${intent.event} trace...`);
-    await loadTrace("voice", intent.event);
-    setVoiceResult(intentSummary);
-    setActionStatus(`Speechmatics command complete: ${intent.event} trace replayed.`);
-    stopLiveVoice();
+  async function runVoiceCommandFromTranscript(transcript: string) {
+    try {
+      await executeVoiceCommand(transcript, "speechmatics");
+    } finally {
+      stopLiveVoice();
+    }
   }
 
   async function handleReplay() {
@@ -660,6 +718,23 @@ export default function Home() {
     void handleLoginTrace("click", node.label, node.id);
   }
 
+  function handleTraceTargetChange(value: string) {
+    setTraceTarget(value);
+    const lookupGraph = repositoryGraph.nodes.length ? repositoryGraph : graph;
+    const selectedTarget = findExactTraceTargetNode(lookupGraph, value);
+    setTraceTargetId(selectedTarget?.id);
+
+    if (selectedTarget && !loading) {
+      setActionStatus(`Trace Target selected: ${selectedTarget.label}. Running focused trace automatically...`);
+      void handleLoginTrace("click", selectedTarget.label, selectedTarget.id);
+    }
+  }
+
+  function handleQuickVoiceCommand(command: string) {
+    setVoiceText(command);
+    void executeVoiceCommand(command, "typed");
+  }
+
   async function runPathPulse(nextPath: ExecutionStep[]) {
     setIsReplaying(true);
     setActiveIndex(-1);
@@ -731,7 +806,7 @@ export default function Home() {
             </div>
             <div className="metric">
               <strong>{riskCount}</strong>
-              <span>risks</span>
+              <span>risk signals</span>
             </div>
           </div>
 
@@ -757,14 +832,11 @@ export default function Home() {
               aria-label="Trace target"
               list="trace-targets"
               value={traceTarget}
-              onChange={(event) => {
-                setTraceTarget(event.target.value);
-                setTraceTargetId(undefined);
-              }}
+              onChange={(event) => handleTraceTargetChange(event.target.value)}
               placeholder="LoginButton, Auth middleware, POST /api/auth/login"
             />
             <p className="field-help">
-              Select or type a node. TraceGrid shows incoming context, outgoing branches, and bounded downstream steps. Empty uses LoginButton as the demo-safe default.
+              Select a listed node to run its focused trace immediately. You can also type a target manually and use Click Moment Trace. Empty uses LoginButton as the demo-safe default.
             </p>
             <datalist id="trace-targets">
               {targetOptions.map((label) => (
@@ -839,11 +911,11 @@ export default function Home() {
             </button>
             <button className="action-button danger" type="button" onClick={handleSecurity} disabled={loading} data-testid="security-button">
               <Shield size={17} />
-              Highlight Security
+              Highlight Security Risks
             </button>
             <button className="action-button warning" type="button" onClick={handleReplay} disabled={loading || isReplaying}>
               <Play size={17} />
-              Replay Execution
+              Replay Execution Flow
             </button>
             <div className="replay-target-label" aria-live="polite" title={replayTargetLabel}>
               <strong>Replay target:</strong>
@@ -900,6 +972,8 @@ export default function Home() {
             disabled={loading}
             onChange={setVoiceText}
             onSubmit={() => void handleVoice()}
+            examples={VOICE_COMMAND_EXAMPLES}
+            onRunCommand={handleQuickVoiceCommand}
             onStartLive={() => void handleLiveVoice()}
             onStopLive={handleStopLiveVoice}
           />
@@ -966,6 +1040,33 @@ function formatError(error: unknown) {
 
 function normalizedTraceTarget(target?: string) {
   return target?.trim() || "LoginButton";
+}
+
+function findExactTraceTargetNode(graph: TraceGraph, target: string) {
+  const normalized = normalizeNodeSearch(target);
+  if (!normalized) {
+    return undefined;
+  }
+
+  return graph.nodes.find((node) => normalizeNodeSearch(node.label) === normalized || normalizeNodeSearch(node.id) === normalized);
+}
+
+function findTraceTargetNode(graph: TraceGraph, target: string) {
+  const exact = findExactTraceTargetNode(graph, target);
+  if (exact) {
+    return exact;
+  }
+
+  const normalized = normalizeNodeSearch(target);
+  if (!normalized) {
+    return undefined;
+  }
+
+  return graph.nodes.find((node) => normalizeNodeSearch(node.label).includes(normalized) || normalizeNodeSearch(node.id).includes(normalized));
+}
+
+function normalizeNodeSearch(value?: string) {
+  return value?.trim().toLowerCase().replace(/\s+/g, " ") ?? "";
 }
 
 function nodeLabels(graph: TraceGraph) {
@@ -1139,6 +1240,49 @@ function formatIntent(source: string, intent: string, event: string, confidence:
   return `${sourceLabel} | Intent: ${intent} | Event: ${event} | Confidence: ${Math.round(confidence * 100)}%`;
 }
 
+function classifyVoiceCommand(command: string) {
+  const normalized = command.toLowerCase();
+
+  if (/\b(ai\s+)?investigat(e|ion)|root cause|verdict\b/.test(normalized)) {
+    return "investigation";
+  }
+
+  if (/highlight.*security|security.*highlight|security risks?|risk signals?|attack surface/.test(normalized)) {
+    return "security";
+  }
+
+  if (/\bagents?\b|agent reasoning|explain graph|run reasoning/.test(normalized)) {
+    return "agents";
+  }
+
+  if (/replay|playback|execution flow|software movie/.test(normalized)) {
+    return "replay";
+  }
+
+  if (/analy[sz]e\s+(repository|repo|codebase|github)|graph reveal|load repository|scan repository/.test(normalized)) {
+    return "analyze";
+  }
+
+  return "trace";
+}
+
+function hasSecuritySignal(node: TraceNode) {
+  return (node.risk ?? "none") !== "none";
+}
+
+function riskSummary(nodes: TraceNode[]) {
+  const counts = nodes.reduce<Record<string, number>>((summary, node) => {
+    const risk = node.risk ?? "none";
+    summary[risk] = (summary[risk] ?? 0) + 1;
+    return summary;
+  }, {});
+
+  return ["low", "medium", "high"]
+    .filter((risk) => counts[risk])
+    .map((risk) => `${risk}=${counts[risk]}`)
+    .join(", ");
+}
+
 function float32ToPcm16(input: Float32Array) {
   const buffer = new ArrayBuffer(input.length * 2);
   const view = new DataView(buffer);
@@ -1176,6 +1320,6 @@ function mergeTranscript(current: string, transcript: string, final: boolean) {
   return `${current} ${transcript}`.replace(/\s+/g, " ").trim();
 }
 
-function shouldTriggerTrace(transcript: string) {
-  return /trace|analy[sz]e|login|logs?\s+in|sign\s+in|auth|middleware|api|endpoint|database|db|query|token|session/i.test(transcript);
+function shouldTriggerVoiceCommand(transcript: string) {
+  return /trace|analy[sz]e|login|logs?\s+in|sign\s+in|auth|middleware|api|endpoint|database|db|query|token|session|security|risk|replay|playback|agent|investigat/i.test(transcript);
 }

@@ -10,8 +10,10 @@ type VoiceCommandPanelProps = {
   isListening: boolean;
   liveTranscript?: string;
   voiceStatus?: VoiceStatus;
+  examples?: string[];
   onChange: (value: string) => void;
   onSubmit: () => void;
+  onRunCommand?: (value: string) => void;
   onStartLive: () => void;
   onStopLive: () => void;
 };
@@ -23,8 +25,10 @@ export function VoiceCommandPanel({
   isListening,
   liveTranscript,
   voiceStatus,
+  examples = [],
   onChange,
   onSubmit,
+  onRunCommand,
   onStartLive,
   onStopLive
 }: VoiceCommandPanelProps) {
@@ -52,9 +56,25 @@ export function VoiceCommandPanel({
           data-testid="speechmatics-button"
         >
           {isListening ? <MicOff size={17} /> : <Mic size={17} />}
-          {isListening ? "Stop Live Voice" : "Live Speechmatics"}
+          {isListening ? "Stop Live Voice" : "Start Live Speechmatics"}
         </button>
       </div>
+
+      {examples.length ? (
+        <div className="voice-command-grid" aria-label="Voice command examples">
+          {examples.map((example) => (
+            <button
+              className="voice-chip"
+              type="button"
+              key={example}
+              onClick={() => onRunCommand?.(example)}
+              disabled={disabled}
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="voice-row">
         <input
@@ -69,13 +89,13 @@ export function VoiceCommandPanel({
         />
         <button className="action-button secondary" type="button" onClick={onSubmit} disabled={disabled} data-testid="voice-button">
           <Keyboard size={17} />
-          Typed
+          Run Command
         </button>
       </div>
 
       <div className="voice-result">
         {liveTranscript ? <strong>Live transcript: {liveTranscript}</strong> : null}
-        <span>{result ?? "Choose live Speechmatics or typed command mode."}</span>
+        <span>{result ?? "Say or type: Analyze repository, Trace LoginButton, Highlight security risks, or Replay execution flow."}</span>
       </div>
     </section>
   );
