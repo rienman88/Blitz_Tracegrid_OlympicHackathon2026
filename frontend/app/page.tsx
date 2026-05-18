@@ -95,6 +95,16 @@ const VOICE_COMMAND_EXAMPLES = [
   "Highlight security risks",
   "Replay execution flow"
 ];
+const DEMO_LOGIN_NODE_IDS = [
+  "ui-login-button",
+  "event-onclick",
+  "api-auth-login",
+  "auth-handler",
+  "auth-middleware",
+  "user-db-query",
+  "token-service",
+  "session-store"
+];
 
 const STAGE_GUIDE: Record<StageId, { title: string; purpose: string; result: string }> = {
   hook: {
@@ -308,24 +318,38 @@ export default function Home() {
     }
   }
 
+  function handleClickMomentTrace() {
+    if (!traceTarget.trim() && isDemoGraphContext(repoPath, repositoryGraph, graph)) {
+      void handleLoginTrace("click", "LoginButton", "ui-login-button");
+      return;
+    }
+
+    void handleLoginTrace("click");
+  }
+
   async function loadTrace(nextStage: StageId, target = normalizedTraceTarget(traceTarget), targetId = traceTargetId) {
     const previousView = currentGraphSnapshot();
     setStage(nextStage);
     const repo = repoPath.trim() || "__demo__";
     const result = await executeTrace(repo, target, targetId);
-    const focusedGraph = result.trace_slice ?? focusGraphOnPath(result.graph, result.execution_path);
+    const lockedDemoLogin = shouldForceFullDemoLogin(result.graph, target, targetId);
+    const nextPath = lockedDemoLogin ? demoLoginExecutionPath(result.graph) : result.execution_path;
+    const focusedGraph = lockedDemoLogin
+      ? demoLoginTraceSlice(result.graph)
+      : result.trace_slice ?? focusGraphOnPath(result.graph, result.execution_path);
+    const nextTimeline = lockedDemoLogin && result.timeline.length !== nextPath.length ? DEMO_TIMELINE : result.timeline;
     pushGraphHistory(previousView);
     setRepositoryGraph(result.graph);
     setTraceFocused(true);
     setGraph(focusedGraph);
     setTargetOptions(nodeLabels(result.graph));
-    setPath(result.execution_path);
-    setTimeline(result.timeline);
-    setAgents(buildFallbackAgents(focusedGraph, result.execution_path));
+    setPath(nextPath);
+    setTimeline(nextTimeline);
+    setAgents(buildFallbackAgents(focusedGraph, nextPath));
     setRevealCount(focusedGraph.nodes.length);
-    setSelectedNodeId(targetId ?? result.execution_path[0]?.id);
+    setSelectedNodeId(targetId ?? nextPath[0]?.id);
 
-    await runPathPulse(result.execution_path);
+    await runPathPulse(nextPath);
   }
 
   async function handleInvestigation() {
@@ -876,20 +900,12 @@ export default function Home() {
             <span><b className="risk-dot high" />High: exposed or sensitive path</span>
           </div>
 
-          <div className="investigation-launch">
-            <button className="action-button investigator flagship" type="button" onClick={() => void handleInvestigation()} disabled={loading} data-testid="investigation-button">
-              <Bot size={18} />
-              Run AI Investigation
-            </button>
-            <span>Autonomous flow: analyze, pick target, trace slice, run agents, then produce one verdict.</span>
-          </div>
-
           <div className="button-grid">
             <button className="action-button" type="button" onClick={handleAnalyze} disabled={loading} data-testid="analyze-button">
               <GitBranch size={17} />
               Analyze Repository
             </button>
-            <button className="action-button secondary" type="button" onClick={() => void handleLoginTrace("click")} disabled={loading} data-testid="login-trace-button">
+            <button className="action-button secondary" type="button" onClick={handleClickMomentTrace} disabled={loading} data-testid="login-trace-button">
               <MousePointer size={17} />
               Click Moment Trace
             </button>
@@ -921,6 +937,16 @@ export default function Home() {
               <strong>Replay target:</strong>
               <span>{replayTargetLabel}</span>
             </div>
+          </div>
+
+          <ReplayControls isPlaying={isReplaying} onReplay={() => void handleReplay()} onReset={handleReset} />
+
+          <div className="investigation-launch">
+            <button className="action-button investigator flagship" type="button" onClick={() => void handleInvestigation()} disabled={loading} data-testid="investigation-button">
+              <Bot size={18} />
+              Run AI Investigation
+            </button>
+            <span>Autonomous flow: analyze, pick target, trace slice, run agents, then produce one verdict.</span>
           </div>
 
           {investigation ? (
@@ -962,8 +988,6 @@ export default function Home() {
               </dl>
             </section>
           ) : null}
-
-          <ReplayControls isPlaying={isReplaying} onReplay={() => void handleReplay()} onReset={handleReset} />
         </aside>
 
         <section className="panel graph-panel">
@@ -1040,6 +1064,50 @@ function formatError(error: unknown) {
 
 function normalizedTraceTarget(target?: string) {
   return target?.trim() || "LoginButton";
+}
+
+function isDemoGraphContext(repoPath: string, repositoryGraph: TraceGraph, graph: TraceGraph) {
+  const repo = repoPath.trim() || "__demo__";
+  return repo === "__demo__" || repositoryGraph.metadata?.mode === "demo" || graph.metadata?.mode === "demo";
+}
+
+function shouldForceFullDemoLogin(graph: TraceGraph, target: string, targetId?: string) {
+  const normalizedTarget = normalizeNodeSearch(target);
+  const loginTarget = !normalizedTarget || normalizedTarget === "loginbutton" || normalizedTarget === "login button";
+  const loginId = !targetId || targetId === "ui-login-button";
+  return loginTarget && loginId && hasFullDemoLoginGraph(graph);
+}
+
+function hasFullDemoLoginGraph(graph: TraceGraph) {
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  return DEMO_LOGIN_NODE_IDS.every((nodeId) => nodeIds.has(nodeId));
+}
+
+function demoLoginExecutionPath(graph: TraceGraph): ExecutionStep[] {
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+  return DEMO_LOGIN_NODE_IDS.map((nodeId, index) => {
+    const node = nodeById.get(nodeId) ?? DEMO_PATH[index];
+    return {
+      ...node,
+      step: index + 1
+    };
+  });
+}
+
+function demoLoginTraceSlice(graph: TraceGraph): TraceGraph {
+  const nodeSet = new Set(DEMO_LOGIN_NODE_IDS);
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+
+  return {
+    ...graph,
+    metadata: {
+      ...graph.metadata,
+      summary: "Focused runtime path: LoginButton full 8-step execution chain.",
+      trace_slice: true
+    },
+    nodes: DEMO_LOGIN_NODE_IDS.map((nodeId, index) => nodeById.get(nodeId) ?? DEMO_GRAPH.nodes[index]),
+    edges: graph.edges.filter((edge) => nodeSet.has(edge.from) && nodeSet.has(edge.to))
+  };
 }
 
 function findExactTraceTargetNode(graph: TraceGraph, target: string) {

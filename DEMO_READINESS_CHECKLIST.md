@@ -313,3 +313,13 @@
 - [x] Added a compact two-line Voice Control layout: primary line for provider status, live Speechmatics, command input, and run action; secondary line for quick commands and command result.
 - [x] Re-run frontend production build after the Voice Control header relocation.
 - [x] Browser verify the compact Voice Control header fits without making the graph header bulky.
+
+## Demo Regression And HTTPS Readiness
+- [x] Locked empty-target demo Click Moment Trace to `LoginButton` / `ui-login-button` so the full 8-node path cannot be shortened by stale target state.
+- [x] Moved `Run AI Investigation` and its verdict below the Replay Flow / Reset controls.
+- [x] Added HTTPS-ready Nginx config and Docker Compose override for Vultr live microphone demos.
+- [x] Added Certbot webroot support under `deploy/certbot-www`.
+- [x] Documented that Speechmatics live microphone requires a trusted HTTPS domain, not plain public-IP HTTP.
+- [x] Re-run frontend production build after the demo regression and HTTPS readiness patch.
+- [x] Browser verify demo Analyze Repository -> Click Moment Trace renders 8 nodes / 7 edges.
+- [x] Verify Docker Compose config renders the HTTPS override without touching `.env.prod`.

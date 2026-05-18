@@ -102,8 +102,17 @@ docker compose -f docker-compose.prod.yml --env-file .env ps
 curl http://127.0.0.1/health
 ```
 
+For live Speechmatics microphone mode on Vultr, use a real domain with HTTPS. Public `http://IP` access is not a browser secure context, so microphone capture can remain blocked even when the Speechmatics API key is valid. The repository includes:
+
+- `docker-compose.https.yml`
+- `deploy/nginx.https.conf`
+- `deploy/certbot-www/`
+
+The HTTPS path uses Let’s Encrypt certificates from `/etc/letsencrypt` and a stable symlink at `/etc/letsencrypt/live/tracegrid`. See `DOCKER_DEPLOYMENT.md` for the exact domain and Certbot commands.
+
 Only Nginx should be public. Keep raw ports closed:
 
+- `443` should be public only when HTTPS is enabled.
 - `3000`
 - `8000`
 - `6379`

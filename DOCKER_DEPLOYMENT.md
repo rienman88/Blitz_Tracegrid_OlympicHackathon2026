@@ -101,9 +101,10 @@ Recommended first deployment:
 
 - Use a Vultr Ubuntu server or Vultr Docker Marketplace app.
 - Open inbound TCP `80` for the Nginx service.
+- Open inbound TCP `443` once you enable HTTPS for live microphone demos.
 - Keep `8000`, `3000`, `6379`, `7474`, and `7687` closed to the public internet.
 - Open SSH only from your own IP if possible.
-- Add TLS after the demo using a domain plus a reverse proxy/cert automation.
+- Live Speechmatics microphone mode on Vultr requires HTTPS with a trusted certificate. A raw public IP over `http://` is not enough for browser microphone access.
 
 Brutal security note: do not expose Neo4j, Redis, or raw backend ports publicly. Docker published ports can expose services outside the container host, so bind local-only ports for local tooling and use Nginx for public traffic.
 
@@ -129,6 +130,64 @@ Without provider keys, TraceGrid still works with typed command mode and local g
 Speechmatics live voice uses the API key server-side to mint a short-lived realtime JWT, then connects to the realtime WebSocket with that JWT. Keep `SPEECHMATICS_API_KEY` only on the backend/Vultr `.env` file; do not expose it to frontend build args.
 
 Browser microphone access requires a secure context. `localhost` works for local testing, but a public Vultr IP over plain `http://` will usually block `navigator.mediaDevices`; use HTTPS before relying on the live Speechmatics microphone in the judged demo.
+
+## Enable HTTPS On Vultr
+
+You need a real domain name pointing to the Vultr IP. Let’s Encrypt will not issue a normal trusted certificate for a bare IP address.
+
+1. Point a DNS `A` record at the Vultr server:
+
+```text
+tracegrid.your-domain.com -> 144.202.58.150
+```
+
+2. Keep your existing `/opt/tracegrid/.env`. Only adjust origins:
+
+```bash
+cd /opt/tracegrid
+cp .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
+grep -q '^ALLOWED_ORIGINS=' .env && sed -i 's|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=https://tracegrid.your-domain.com|' .env || echo 'ALLOWED_ORIGINS=https://tracegrid.your-domain.com' >> .env
+```
+
+3. Start the HTTP stack so Certbot can answer the ACME challenge:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env up -d nginx
+sudo apt update
+sudo apt install -y certbot
+sudo certbot certonly --webroot -w /opt/tracegrid/deploy/certbot-www -d tracegrid.your-domain.com
+```
+
+4. Create the stable certificate path expected by `deploy/nginx.https.conf`:
+
+```bash
+sudo ln -sfn /etc/letsencrypt/live/tracegrid.your-domain.com /etc/letsencrypt/live/tracegrid
+```
+
+5. Rebuild the frontend with same-origin HTTPS calls, then start the HTTPS override:
+
+```bash
+cd /opt/tracegrid
+export NEXT_PUBLIC_GIT_SHA="$(git rev-parse --short HEAD)"
+export NEXT_PUBLIC_BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+docker compose -f docker-compose.prod.yml -f docker-compose.https.yml --env-file .env build --no-cache frontend
+docker compose -f docker-compose.prod.yml -f docker-compose.https.yml --env-file .env up -d --force-recreate backend frontend nginx
+```
+
+6. Verify:
+
+```bash
+curl -I https://tracegrid.your-domain.com/health
+curl https://tracegrid.your-domain.com/voice/status
+```
+
+Open the app at:
+
+```text
+https://tracegrid.your-domain.com
+```
+
+Speechmatics should show as configured if `SPEECHMATICS_API_KEY` is present in `/opt/tracegrid/.env`. The live microphone button should work only after the page is loaded over trusted HTTPS.
 
 ## Vultr Server Commands
 
@@ -175,7 +234,6 @@ docker compose up -d
 
 ## Known Production Gaps
 
-- TLS is not included yet.
 - No authentication is protecting the demo UI.
 - Neo4j and Redis are present for future architecture but are not required by the current demo flow.
 - Full runtime tracing is still future work; AST-lite is evidence-backed static reconstruction.
