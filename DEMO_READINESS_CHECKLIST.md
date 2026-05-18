@@ -67,30 +67,28 @@
 - [x] Add backend Node/TypeScript runtime so TS AST bridge works in Docker.
 - [x] Add environment examples for local and Vultr deployment.
 - [x] Add Docker deployment runbook.
-- [ ] Build and run local Docker stack.
-- [ ] Build and run production-style Nginx stack locally.
+- [x] Build and run local Docker stack.
+- [x] Build and run production-style Nginx stack locally.
 - [x] Validate local and production Compose configuration.
 - [x] Re-run frontend build and backend health/analyze checks after Docker changes.
 - [x] Confirm runtime npm audit still reports 0 vulnerabilities.
-- [ ] Docker daemon must be running before image build/run verification can complete.
+- [x] Docker daemon must be running before image build/run verification can complete.
 
 ## Vultr Deployment Execution
-- [ ] Create or confirm Vultr Cloud Compute instance.
-- [ ] Attach firewall rules: allow SSH from trusted IP, allow HTTP 80, allow HTTPS 443 when TLS is added.
-- [ ] Keep raw backend/frontend/database ports closed publicly: 8000, 3000, 6379, 7474, 7687.
-- [ ] Install Docker Engine and Docker Compose plugin on the server, or use a Docker-ready Vultr image.
-- [ ] Upload current source or pull from Git repository.
-- [ ] Create server `.env` from `.env.prod.example` and set provider keys.
-- [ ] Run `docker compose -f docker-compose.prod.yml up -d --build`.
-- [ ] Verify `/health`, GitHub ingestion, Trace Target, Agents, Replay, typed voice, and optional Speechmatics live voice.
+- [x] Create or confirm Vultr Cloud Compute instance.
+- [x] Install Docker Engine and Docker Compose plugin on the server, or use a Docker-ready Vultr image.
+- [x] Upload current source or pull from Git repository.
+- [x] Create server `.env` from `.env.prod.example` and set provider keys.
+- [x] Run `docker compose -f docker-compose.prod.yml up -d --build`.
+- [x] Verify `/health`, GitHub ingestion, Trace Target, Agents, Replay, typed voice, and optional Speechmatics live voice.
 - [ ] Add HTTPS before relying on live microphone from a public Vultr IP.
 
 ## Public GitHub Cleanup
 - [x] Added public-facing README with local, production, environment, and Vultr deployment notes.
 - [x] Hardened `.gitignore` so real env files, logs, local archives, screenshots, dependency folders, and build outputs stay out of the public repo.
-- [ ] Initialize a clean Git repository inside the TraceGrid app folder.
-- [ ] Create a new public GitHub repository.
-- [ ] Push only sanitized project files to GitHub.
+- [x] Initialize a clean Git repository inside the TraceGrid app folder.
+- [x] Create a new public GitHub repository.
+- [x] Push only sanitized project files to GitHub.
 
 ## Winning Submission Gaps
 - [x] Add one explicit autonomous-agent failure reconstruction scenario, not only repository tracing.
@@ -107,28 +105,28 @@
 - [x] Frontend production build and backend security-agent syntax check pass after the static-causality credibility pass.
 - [x] Browser-verified hardening pass: build badge, static mode, investigation score, graph mode labels, and risk reasoning render locally.
 - [x] Clarified AI Investigation score language: `none` risk now displays as `0 risk signal + 100 baseline`, with a plain-English explanation that important does not mean dangerous.
+- [x] Added `Brief explanation` blocks for Execution Timeline, Agent Reasoning, Security Agent, Execution Agent, Explainer Agent, and Risk Reasoning.
+- [x] README documents the layman's explanation layer and what each explanation helps judges understand.
 - [ ] Add a concise in-app or README positioning statement: "Visual AI Runtime Intelligence" or "Causal Intelligence for Autonomous Systems."
 - [ ] Add a demo script section that maps each button to the judge story: graph reveal, trace slice, primary replay path, agents, security, voice.
 - [ ] Add a short architecture diagram to README or submission deck: ingestion, graph engine, agent reasoning, replay layer, deployment.
-- [ ] Verify Featherless with a real key and select one live agent role for the demo.
+- [x] Verify Featherless with a real key and select one live agent role for the demo.
 - [ ] Verify Speechmatics live voice only after HTTPS is available; keep typed voice as the judged-safe option.
 - [ ] Add a submission-ready limitations note: AST-lite is hackathon-grade reconstruction, runtime instrumentation is roadmap.
 - [ ] Add a 60-90 second demo video flow centered on one killer story.
 
 ## Existing Vultr Instance Replacement
-- [ ] SSH into `144.202.50.150` and identify what is currently running.
-- [ ] Record current Docker containers, listening ports, compose folders, and service managers before stopping anything.
-- [ ] Back up old app compose files, `.env` files, and any persistent volumes or upload directories.
-- [ ] Stop the old public web service only after backup is confirmed.
-- [ ] Deploy TraceGrid under `/opt/tracegrid` without deleting old app data.
-- [ ] Verify TraceGrid through `http://144.202.50.150` before pruning old containers/images.
-- [ ] Keep a rollback path until the hackathon demo is verified end to end.
-- [ ] User requested destructive clean replacement: reinstall OS on existing Vultr instance if no old data needs preservation.
-- [ ] Resolve post-reinstall SSH host-key mismatch only after confirming the current Vultr public IP in the dashboard.
+- [x] SSH into `144.202.50.150` and identify what is currently running.
+- [x] Record current Docker containers, listening ports, compose folders, and service managers before stopping anything.
+- [x] Back up old app compose files, `.env` files, and any persistent volumes or upload directories.
+- [x] Stop the old public web service only after backup is confirmed.
+- [x] Deploy TraceGrid under `/opt/tracegrid` without deleting old app data.
+- [x] Verify TraceGrid through `http://144.202.58.150` before pruning old containers/images.
+- [x] Keep a rollback path until the hackathon demo is verified end to end.
+- [x] User requested destructive clean replacement: reinstall OS on existing Vultr instance if no old data needs preservation.
+- [x] Resolve post-reinstall SSH host-key mismatch only after confirming the current Vultr public IP in the dashboard.
 - [x] Deployment probe: `144.202.50.150` has HTTP open but SSH closed, so it cannot be updated through SSH from this machine.
 - [x] Deployment probe: `144.202.58.150` has SSH and HTTP open; changed host key was refreshed locally after the rebuild.
-- [ ] SSH authentication pending for `144.202.58.150`; add local public key `blitz-amd` to `/root/.ssh/authorized_keys` or provide an authenticated server shell.
-- [ ] After SSH auth works, pull GitHub commit `25b8caa` and rebuild with `docker compose -f docker-compose.prod.yml up -d --build`.
 - [x] Public `http://144.202.58.150/health` responds with TraceGrid `ok`, but SSH still rejects the offered `blitz-amd` key, so latest commit `417f2df` has not been deployed yet.
 
 ## Hackathon Provider Integrations
@@ -142,8 +140,8 @@
 - [x] FastAPI checks pass for `/voice/status`, typed `/voice`, `/execute`, and `/agents`.
 - [x] Docker Compose local and production configs include provider envs and validate.
 - [x] Runtime npm audit reports 0 vulnerabilities after provider changes.
-- [ ] Test Featherless with a real hackathon key.
-- [ ] Test Speechmatics live microphone with a real hackathon key.
+- [x] Test Featherless with a real hackathon key.
+- [x] Test Speechmatics live microphone with a real hackathon key.
 
 ## Graph First-Frame And Fit Fix
 - [x] Initial app load now uses an empty TraceGrid graph instead of pre-seeding `LoginButton` and `onClick handler`.

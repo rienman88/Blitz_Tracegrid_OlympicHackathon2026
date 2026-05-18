@@ -14,9 +14,21 @@ The project is built for the Milan AI Week hackathon demo flow: graph reveal, cl
 - Focused trace targets by node label or clicked graph node.
 - Replay target labeling so the animated path is explicit.
 - Graph-grounded agent cards for architecture, execution, security, and explanation.
+- Brief explanations beside the timeline, agent cards, and risk reasoning so non-technical judges can understand what each panel means.
 - Featherless inference integration when configured.
 - Speechmatics typed command mode and optional realtime microphone mode.
 - Docker Compose local and production-style deployment.
+
+## Brief Explanations
+
+TraceGrid now includes short layman's explanations in the main demo panels:
+
+- **Execution Timeline:** explains that the timeline is the simplified story of the selected replay path.
+- **Agent Reasoning:** explains that the agents translate the same graph into structure, risk, execution, and narrative meaning.
+- **Security Agent:** explains that security findings are about places where APIs, auth, sessions, input, or data access may need review.
+- **Execution Agent:** explains that replay follows a breadcrumb trail through the graph, not live runtime tracing yet.
+- **Explainer Agent:** explains the technical graph as a story for non-engineers.
+- **Risk Reasoning:** explains that important does not automatically mean dangerous; static analysis can miss runtime-only behavior.
 
 ## Local Run
 

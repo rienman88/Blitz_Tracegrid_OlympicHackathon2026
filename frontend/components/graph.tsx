@@ -146,6 +146,10 @@ export default function Graph({
           <div className={`risk-explanation risk-${selected.risk ?? "none"}`}>
             <span>Risk reasoning</span>
             <strong>{riskReason(selected, data)}</strong>
+            <p className="brief-explanation inline">
+              <strong>Brief explanation</strong>
+              <span>{riskBrief(selected)}</span>
+            </p>
           </div>
           <div className="evidence-row">
             <span>{formatConfidence(selected.confidence ?? selected.evidence?.confidence)}</span>
@@ -303,6 +307,24 @@ function riskReason(node: TraceNode, graph: TraceGraph) {
   }
 
   return `${boundary} has no current risk signal in AST-lite evidence; that is not proof of runtime safety.`;
+}
+
+function riskBrief(node: TraceNode) {
+  const risk = node.risk ?? "none";
+
+  if (risk === "high") {
+    return "TraceGrid is saying this node deserves immediate attention because it is close to something exposed, sensitive, or security-related.";
+  }
+
+  if (risk === "medium") {
+    return "TraceGrid is saying this node changes something important, so it should be checked before calling the flow safe.";
+  }
+
+  if (risk === "low") {
+    return "TraceGrid found a small signal here. It matters to the path, but it is not the main concern.";
+  }
+
+  return "This part looks important only because of where it sits in the graph. TraceGrid did not find an obvious danger here, but runtime testing is still needed before calling it safe.";
 }
 
 function boundaryReason(node: TraceNode) {
