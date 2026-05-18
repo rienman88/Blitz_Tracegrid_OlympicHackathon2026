@@ -98,6 +98,14 @@
 - [x] Investigation verdict now reports Root Cause, Attack Surface, Primary Replay Path, Recommended Fix, and Confidence.
 - [x] Frontend production build passes after adding the AI Investigation workflow.
 - [x] Browser-verified local `Run AI Investigation` flow renders the verdict and completes against the demo-safe graph.
+- [x] Added build/version badge inputs so the live UI can prove which Git commit was deployed.
+- [x] Added explicit `Static Causal Reconstruction` mode label to protect credibility before runtime tracing exists.
+- [x] Promoted `Run AI Investigation` as the flagship autonomous workflow control.
+- [x] Added AI Investigation selection score breakdown: risk, connection, layer, and direct graph connection count.
+- [x] Added graph mode labels for full repository graph, focused trace slice, and primary replay path.
+- [x] Improved node and security-agent risk explanations with boundary-specific reasoning.
+- [x] Frontend production build and backend security-agent syntax check pass after the static-causality credibility pass.
+- [x] Browser-verified hardening pass: build badge, static mode, investigation score, graph mode labels, and risk reasoning render locally.
 - [ ] Add a concise in-app or README positioning statement: "Visual AI Runtime Intelligence" or "Causal Intelligence for Autonomous Systems."
 - [ ] Add a demo script section that maps each button to the judge story: graph reveal, trace slice, primary replay path, agents, security, voice.
 - [ ] Add a short architecture diagram to README or submission deck: ingestion, graph engine, agent reasoning, replay layer, deployment.

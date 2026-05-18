@@ -143,6 +143,10 @@ export default function Graph({
         <div className="selected-node">
           <strong>{selected.label}</strong>
           <p>{selected.description}</p>
+          <div className={`risk-explanation risk-${selected.risk ?? "none"}`}>
+            <span>Risk reasoning</span>
+            <strong>{riskReason(selected, data)}</strong>
+          </div>
           <div className="evidence-row">
             <span>{formatConfidence(selected.confidence ?? selected.evidence?.confidence)}</span>
             {selected.evidence ? (
@@ -279,6 +283,57 @@ function formatConfidence(confidence?: number) {
   }
 
   return `${Math.round(confidence * 100)}% confidence`;
+}
+
+function riskReason(node: TraceNode, graph: TraceGraph) {
+  const risk = node.risk ?? "none";
+  const degree = graph.edges.filter((edge) => edge.from === node.id || edge.to === node.id).length;
+  const boundary = boundaryReason(node);
+
+  if (risk === "high") {
+    return `${boundary} is high risk because it is exposed, sensitive, or close to auth/data flow with ${degree} visible graph connection${degree === 1 ? "" : "s"}.`;
+  }
+
+  if (risk === "medium") {
+    return `${boundary} is medium risk because it changes trust, state, identity, session, or backend control flow.`;
+  }
+
+  if (risk === "low") {
+    return `${boundary} is low risk: it is likely local control flow, but still contributes to the replay path.`;
+  }
+
+  return `${boundary} has no current risk signal in AST-lite evidence; that is not proof of runtime safety.`;
+}
+
+function boundaryReason(node: TraceNode) {
+  const type = node.type.toLowerCase();
+  const label = node.label.toLowerCase();
+
+  if (["api", "route", "endpoint"].includes(type) || /^get |^post |^put |^delete |\/api\//i.test(node.label)) {
+    return "API or network boundary";
+  }
+
+  if (type === "middleware" || node.layer.toLowerCase() === "security") {
+    return "Security policy boundary";
+  }
+
+  if (["db", "database"].includes(type) || /query|store|database|db/.test(label)) {
+    return "Persistent data boundary";
+  }
+
+  if (["service", "handler"].includes(type) || /token|session|auth/.test(label)) {
+    return "Backend execution boundary";
+  }
+
+  if (["ui", "event"].includes(type)) {
+    return "User-triggered control-flow boundary";
+  }
+
+  if (["dependency", "import"].includes(type)) {
+    return "Static dependency edge";
+  }
+
+  return `${node.layer} ${node.type} node`;
 }
 
 function splitLabel(label: string, maxChars: number) {

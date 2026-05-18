@@ -39,6 +39,15 @@ type InvestigationVerdict = {
   primaryReplayPath: string;
   recommendedFix: string;
   confidence: string;
+  score: InvestigationScoreBreakdown;
+};
+
+type InvestigationScoreBreakdown = {
+  total: number;
+  risk: number;
+  connections: number;
+  layer: number;
+  directConnections: number;
 };
 
 type GraphViewSnapshot = {
@@ -73,6 +82,11 @@ const STAGES: Array<{
 ];
 
 const PULSE_DELAY_MS = 360;
+const BUILD_INFO = {
+  version: process.env.NEXT_PUBLIC_TRACEGRID_VERSION?.trim() || "hackathon",
+  commit: process.env.NEXT_PUBLIC_GIT_SHA?.trim() || "local",
+  builtAt: process.env.NEXT_PUBLIC_BUILD_TIME?.trim() || "dev build"
+};
 
 const STAGE_GUIDE: Record<StageId, { title: string; purpose: string; result: string }> = {
   hook: {
@@ -184,6 +198,9 @@ export default function Home() {
   const replayTargetLabel = path.length
     ? path.map((step) => step.label).join(" -> ")
     : "No primary path selected";
+  const graphModeLabel = traceFocused ? "Focused Trace Slice" : graph.nodes.length ? "Full Repository Graph" : "Ready Graph";
+  const replayModeLabel = path.length ? "Primary Replay Path" : "No Replay Path Selected";
+  const analyzerMode = graph.metadata?.analyzer ?? graph.metadata?.mode ?? "static-causal";
 
   function currentGraphSnapshot(): GraphViewSnapshot {
     return {
@@ -686,9 +703,12 @@ export default function Home() {
           <span>Visible causal execution for software systems</span>
         </div>
         <div className="status-row">
+          <span className="status-pill static-mode">Static Causal Reconstruction</span>
           <span className="status-pill">Demo-safe fallback active</span>
           <span className="status-pill">Graph-grounded agents</span>
-          <span className="status-pill">Milan script sequence</span>
+          <span className="status-pill build-pill" title={`Built: ${BUILD_INFO.builtAt}`}>
+            v{BUILD_INFO.version} | {BUILD_INFO.commit}
+          </span>
         </div>
       </header>
 
@@ -782,6 +802,14 @@ export default function Home() {
             <span><b className="risk-dot high" />High: exposed or sensitive path</span>
           </div>
 
+          <div className="investigation-launch">
+            <button className="action-button investigator flagship" type="button" onClick={() => void handleInvestigation()} disabled={loading} data-testid="investigation-button">
+              <Bot size={18} />
+              Run AI Investigation
+            </button>
+            <span>Autonomous flow: analyze, pick target, trace slice, run agents, then produce one verdict.</span>
+          </div>
+
           <div className="button-grid">
             <button className="action-button" type="button" onClick={handleAnalyze} disabled={loading} data-testid="analyze-button">
               <GitBranch size={17} />
@@ -806,10 +834,6 @@ export default function Home() {
             <button className="action-button secondary" type="button" onClick={handleAgents} disabled={loading} data-testid="agents-button">
               <Bot size={17} />
               Agents Explain Graph
-            </button>
-            <button className="action-button investigator" type="button" onClick={() => void handleInvestigation()} disabled={loading} data-testid="investigation-button">
-              <Bot size={17} />
-              Run AI Investigation
             </button>
             <button className="action-button danger" type="button" onClick={handleSecurity} disabled={loading} data-testid="security-button">
               <Shield size={17} />
@@ -850,6 +874,13 @@ export default function Home() {
                   <dt>Confidence:</dt>
                   <dd>{investigation.confidence}</dd>
                 </div>
+                <div>
+                  <dt>Selection Score:</dt>
+                  <dd>
+                    {investigation.score.total} total = {investigation.score.risk} risk + {investigation.score.connections} connection + {investigation.score.layer} layer points
+                    ({investigation.score.directConnections} direct graph connections).
+                  </dd>
+                </div>
               </dl>
             </section>
           ) : null}
@@ -883,6 +914,12 @@ export default function Home() {
               {traceFocused
                 ? `Focused Trace Target: ${normalizedTraceTarget(traceTarget)}. The canvas shows the selected node's incoming context, outgoing branches, and bounded downstream continuation. The replay path remains the primary step-by-step route through that slice.`
                 : "Full graph view. Use Trace Target or click any node to inspect the runtime-causal slice from that point."}
+            </div>
+            <div className="mode-strip" aria-label="Graph mode labels">
+              <span><strong>Engine</strong> Static Causal Reconstruction</span>
+              <span><strong>Graph</strong> {graphModeLabel}</span>
+              <span><strong>Replay</strong> {replayModeLabel}</span>
+              <span><strong>Analyzer</strong> {analyzerMode}</span>
             </div>
           </div>
           <Graph
@@ -963,11 +1000,22 @@ function chooseInvestigationTarget(graph: TraceGraph) {
   const nonDependencyNodes = graph.nodes.filter((node) => !["dependency", "import"].includes(node.type.toLowerCase()));
   const pool = nonDependencyNodes.length ? nonDependencyNodes : graph.nodes;
 
-  return [...pool].sort((left, right) => investigationScore(right, graph) - investigationScore(left, graph))[0];
+  return [...pool].sort((left, right) => investigationScoreBreakdown(right, graph).total - investigationScoreBreakdown(left, graph).total)[0];
 }
 
-function investigationScore(node: TraceNode, graph: TraceGraph) {
-  return riskWeight(node.risk) * 100 + nodeDegree(graph, node.id) * 12 + typeWeight(node.type);
+function investigationScoreBreakdown(node: TraceNode, graph: TraceGraph): InvestigationScoreBreakdown {
+  const directConnections = nodeDegree(graph, node.id);
+  const risk = riskWeight(node.risk) * 100;
+  const connections = directConnections * 12;
+  const layer = typeWeight(node.type);
+
+  return {
+    total: risk + connections + layer,
+    risk,
+    connections,
+    layer,
+    directConnections
+  };
 }
 
 function riskWeight(risk: TraceNode["risk"]) {
@@ -1015,7 +1063,7 @@ function buildInvestigationVerdict(
   const primaryReplayPath = executionPath.length
     ? executionPath.map((step) => step.label).join(" -> ")
     : target.label;
-  const degree = nodeDegree(fullGraph, target.id);
+  const score = investigationScoreBreakdown(target, fullGraph);
   const riskNodes = focusedGraph.nodes.filter((node) => node.risk === "medium" || node.risk === "high");
   const finding = firstActionableFinding(agentOutput);
   const attackSurface = finding
@@ -1030,11 +1078,12 @@ function buildInvestigationVerdict(
 
   return {
     target: target.label,
-    rootCause: `${target.label} was selected as the likely investigation root because it carries ${target.risk ?? "none"} risk and ${degree} direct graph connection${degree === 1 ? "" : "s"}.`,
+    rootCause: `${target.label} was selected as the likely investigation root because it carries ${target.risk ?? "none"} risk, ${score.directConnections} direct graph connection${score.directConnections === 1 ? "" : "s"}, and the highest investigation score in the current graph.`,
     attackSurface,
     primaryReplayPath,
     recommendedFix,
-    confidence: confidenceLabel(agentOutput)
+    confidence: confidenceLabel(agentOutput),
+    score
   };
 }
 

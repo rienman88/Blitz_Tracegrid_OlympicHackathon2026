@@ -558,7 +558,7 @@ function securityFindings(nodes: Array<TraceNode | ExecutionStep>): AgentFinding
       severity: node.risk,
       node: node.label,
       node_id: node.id,
-      evidence: node.description,
+      evidence: `${riskReasonForNode(node)} ${node.description ?? phaseFor(node.type)}${evidenceLabel(node)}`,
       recommendation: recommendationFor(node)
     }));
 
@@ -718,25 +718,56 @@ function evidenceLabel(node: TraceNode | ExecutionStep) {
 }
 
 function recommendationFor(node: TraceNode) {
-  if (node.type === "api") {
+  const normalizedType = node.type.toLowerCase();
+  const label = node.label.toLowerCase();
+
+  if (normalizedType === "api" || /^get |^post |^put |^delete |\/api\//i.test(node.label)) {
     if (node.risk === "low") {
       return `Confirm ${node.label} is intentionally public, has safe response data, and emits enough telemetry for replay.`;
     }
 
-    return `Add explicit validation, throttling, and telemetry around ${node.label}.`;
+    return `Add request validation, auth context checks, throttling, and replay telemetry around ${node.label}.`;
   }
 
-  if (node.type === "middleware") {
+  if (normalizedType === "middleware" || node.layer.toLowerCase() === "security") {
     return `Verify rate limits, auth policy, and fail-closed behavior before ${node.label} passes control.`;
   }
 
-  if (node.type === "db") {
-    return `Confirm parameterized queries, secret-safe logging, and least-privilege access for ${node.label}.`;
+  if (normalizedType === "db" || normalizedType === "database" || /query|store|database|db/.test(label)) {
+    return `Confirm parameterized access, least-privilege credentials, and secret-safe logging for ${node.label}.`;
   }
 
-  if (node.type === "service") {
+  if (normalizedType === "service" || /token|session/.test(label)) {
     return `Constrain token/session behavior and add replay-resistant controls around ${node.label}.`;
   }
 
   return `Review ${node.label} as part of the active trace slice.`;
+}
+
+function riskReasonForNode(node: TraceNode | ExecutionStep) {
+  const risk = node.risk ?? "none";
+  const type = node.type.toLowerCase();
+  const label = node.label.toLowerCase();
+
+  if (["api", "route", "endpoint"].includes(type) || /^get |^post |^put |^delete |\/api\//i.test(node.label)) {
+    return `${risk.toUpperCase()} risk signal: API or network boundary.`;
+  }
+
+  if (type === "middleware" || node.layer.toLowerCase() === "security") {
+    return `${risk.toUpperCase()} risk signal: security policy boundary.`;
+  }
+
+  if (["db", "database"].includes(type) || /query|store|database|db/.test(label)) {
+    return `${risk.toUpperCase()} risk signal: persistent data boundary.`;
+  }
+
+  if (["service", "handler"].includes(type) || /token|session|auth/.test(label)) {
+    return `${risk.toUpperCase()} risk signal: backend control or identity/session boundary.`;
+  }
+
+  if (["ui", "event"].includes(type)) {
+    return `${risk.toUpperCase()} risk signal: user-triggered control-flow boundary.`;
+  }
+
+  return `${risk.toUpperCase()} risk signal: graph analyzer classified this node from static AST-lite evidence.`;
 }

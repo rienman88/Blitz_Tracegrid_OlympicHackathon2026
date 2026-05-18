@@ -89,6 +89,18 @@ button {
   font-size: 12px;
 }
 
+.status-pill.static-mode {
+  color: #c8f3ff;
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(8, 22, 24, 0.88);
+}
+
+.status-pill.build-pill {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  color: #f8dfb2;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(230px, 0.68fr) minmax(420px, 1.45fr) minmax(300px, 0.9fr);
@@ -278,6 +290,21 @@ button {
   gap: 8px;
 }
 
+.investigation-launch {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(8, 22, 24, 0.92), rgba(17, 23, 20, 0.92));
+}
+
+.investigation-launch span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .action-button {
   min-height: 42px;
   display: inline-flex;
@@ -306,6 +333,13 @@ button {
 .action-button.investigator {
   color: #031118;
   background: var(--cyan);
+}
+
+.action-button.flagship {
+  min-height: 48px;
+  justify-content: flex-start;
+  padding-inline: 14px;
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.2);
 }
 
 .action-button.danger {
@@ -389,6 +423,10 @@ button {
   overflow-wrap: anywhere;
 }
 
+.investigation-card dd strong {
+  color: #c8f3ff;
+}
+
 .voice-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -470,6 +508,31 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.mode-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mode-strip span {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: rgba(8, 10, 9, 0.58);
+  color: var(--muted);
+  font-size: 11px;
+  min-width: 0;
+}
+
+.mode-strip strong {
+  color: var(--cyan);
+  font-size: 10px;
+  text-transform: uppercase;
 }
 
 .graph-wrap {
@@ -591,6 +654,36 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.risk-explanation {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(12, 18, 15, 0.72);
+}
+
+.risk-explanation span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.risk-explanation strong {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.risk-explanation.risk-high {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.risk-explanation.risk-medium {
+  border-color: rgba(245, 158, 11, 0.36);
 }
 
 .evidence-row {
@@ -773,6 +866,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .mode-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .graph-wrap,
   .trace-graph {
     min-height: 520px;
@@ -790,7 +887,8 @@ button {
   }
 
   .metric-grid,
-  .voice-row {
+  .voice-row,
+  .mode-strip {
     grid-template-columns: 1fr;
   }
 }

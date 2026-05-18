@@ -140,6 +140,8 @@ sudo apt install -y git
 git clone <your-repo-url> tracegrid
 cd tracegrid
 cp .env.prod.example .env
+export NEXT_PUBLIC_GIT_SHA="$(git rev-parse --short HEAD)"
+export NEXT_PUBLIC_BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml ps
 ```
